@@ -1,12 +1,10 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const app = express();
+// const PORT = process.envPORT || 8000;
 const PORT = 8080;
-
 app.use(bodyParser.urlencoded({extended: true}));
-
 app.set("view engine", "ejs");
-
 
 
 const generateRandomString = function() {
@@ -18,7 +16,6 @@ const generateRandomString = function() {
     }
     return result;
 };
-
 
 
 const urlDatabase = {
@@ -47,8 +44,7 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { 
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
-
-     }
+    }
 
   res.render("urls_show", templateVars);
 });
@@ -65,16 +61,17 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-
-app.get("/", (req, res) => {
-  res.send("Hello!");
+app.post("/urls/:shortURL/edit", (req, res) => {
+  const newURL = req.body.newURL;
+  const id = req.params.shortURL;  
+  res.redirect(`/urls/${id}/`);
 });
-
 
 app.post("/urls", (req, res) => {
   console.log(req.body); 
   res.send("Ok");
 });
+
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
