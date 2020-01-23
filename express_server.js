@@ -49,7 +49,17 @@ for (let user in users) {
   }
 }
 return false;
-};  
+}; 
+
+
+const checkPassword = function(password) {
+  for (let user in users) {
+    if (users[user].password === password) {
+      return users[user];
+    }
+  }
+  return undefined;
+};
 
 
 
@@ -100,6 +110,14 @@ app.get("/register", (req,res) => {
   res.render("urls_register", templateVars);
 });
 
+//login endpoint with new login template
+app.get("/login", (req, res) => {
+  let templateVars = {
+    users: users[req.cookies["user_id"]]
+  };
+  res.render("urls_login", templateVars);
+});
+
 
 //edits url
 app.post("/urls/:shortURL", (req, res) => {
@@ -119,7 +137,7 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
-
+//deletes shorturl and redirects
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
   res.redirect("/urls");
@@ -128,9 +146,10 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //if no error then impletements cookie with new email and redirects 
 app.post("/register", (req, res) => {
-  if (!req.body.email || !req.body.password || checkEmail(users, req.body.email)) {
-    res.status(400);
-    res.send("This email already exists");
+  if (req.body.email === "") {
+    res.status(400).send("Please enter an email");
+  } else if (req.body.password === "") {
+    res.status(400).send("Enter a password");
   } else {
     let randoUserId = generateRandomString();
     users[randoUserId] = {
@@ -144,16 +163,23 @@ app.post("/register", (req, res) => {
 });
 
 
-//add cookies when login and redirects
+//add cookies after login and redirects to urls
 app.post("/login", (req, res) => {
-    res.cookie("username", req.body.username);
+  if(!checkEmail(req.body.email)) {
+    res.status(403).send("Please try again with correct credentials");
+  } else if (!checkPassword(req.body.password)) {
+    res.status(403).send("Please try again with correct credentials");
+  }  else {
+    const userId = checkEmail(req.body.password)["id"];
+    res.cookie("user_id", userId);
     res.redirect("/urls");
+  }
 });
 
 
 //redirects after logout and clears cookie
 app.post("/logout", (req, res) => {
-    res.clearCookie("username");
+    res.clearCookie("user_id");
     res.redirect("/urls");
 });
 
