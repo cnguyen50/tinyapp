@@ -30,11 +30,13 @@ app.get("/urls.json", (req, res) => {
 });
 
 
+// renders Create new url
 app.get("/urls/new", (req, res) => {
   res.render("urls_new",);
 });
 
 
+//renders tinyurl of and edit new url
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { 
     shortURL: req.params.shortURL,
@@ -50,13 +52,13 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-
+//renders my urls index
 app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
-//edits url
+//edits url and redirects tio my
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = generateRandomString(); 
   const newURL = req.body.newURL;
