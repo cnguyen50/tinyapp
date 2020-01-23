@@ -40,7 +40,7 @@ const generateRandomString = function() {
 };
 
 
-const checkEmail = function (email) {
+const checkEmail = function(email) {
 for (let user in users) {
   if (users[user].email === email) {
     return users[user];
@@ -61,11 +61,11 @@ const checkPassword = function(password) {
 
 
 
-// displays cookie
-app.get("/", function (req, res) {
-  res.cookie("username", req.body.username);
-  console.log("cookies:", req.cookies);
-})
+//displays cookie
+// app.get("/", function (req, res) {
+//   res.cookie("username", req.body.username);
+//   console.log("cookies:", req.cookies);
+// })
 
 
 // renders Create new url
@@ -85,6 +85,16 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+//renders Register page
+app.get("/register", (req, res) => {
+res.render("urls_register");
+});
+
+//renders Login page
+app.get("/login", (req, res) => {
+  res.render("urls_login");
+});
+  
 
 //redirects to website
 app.get("/u/:shortURL", (req, res) => {
@@ -92,13 +102,65 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+
 //renders my urls index
 app.get("/urls", (req, res) => {
   let templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]]};
   res.render("urls_index", templateVars);
 });
 
-//edits url and redirects tio my
+
+// create reg handler and redirect user to urls
+app.post("/register", (req, res) => {
+if (req.body.email === "") {
+     res.status(400).send("Please enter an email");
+
+  } else if (req.body.password === "") {
+     res.status(400).send("Enter a password"); 
+
+   } else if (checkEmail(req.body.email)) {
+     res.status(400).send("Email already exists");
+  
+   } else {
+     let randoUserId = generateRandomString();
+     users[randoUserId] = {
+       id: randoUserId, 
+       email: req.body.email, 
+       password: req.body.password
+     };
+     res.cookie("user_id", randoUserId);
+     res.redirect("/urls");
+  } 
+});
+ 
+//uses new email and opass field and sets user_id cookie
+app.post("/login", (req, res) => {
+  if(!checkEmail(req.body.email)) {
+    res.status(403).send("Please try again with correct credentials");
+
+  } else if (!checkPassword(req.body.password)) {
+    res.status(403).send("Please try again with correct password");
+
+  } else {
+    const userId = checkEmail(req.body.email)["id"]; 
+      res.cookie("user_id", userId);
+      res.redirect("/urls"); 
+  }
+});
+
+//when hit logout button redirects to urls
+app.post("/logout", (req, res) => {
+  let templateVars = {
+     id: req.body.id, 
+     email: req.body.email, 
+     password: req.body.password
+    };
+ res.cookie("user_id", templateVars);
+ res.redirect("/urls"); 
+});
+
+
+//edits url and redirects to urls
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = generateRandomString(); 
   const newURL = req.body.newURL;
@@ -123,49 +185,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 
-//if no error then impletements cookie with new email and redirects 
-app.post("/register", (req, res) => {
-  if (req.body.email === "") {
-    res.status(400).send("Please enter an email");
-
-  } else if (req.body.password === "") {
-    res.status(400).send("Enter a password"); 
-
-  } else if (checkEmail(req.body.email)) {
-    res.status(400).send(`Email already exists`);
-  
-  } else {
-    let randoUserId = generateRandomString();
-    users[randoUserId] = {
-      id: randoUserId, 
-      email: req.body.email, 
-      password: req.body.password
-    };
-    res.cookie("user_id", randoUserId);
-    res.redirect("/urls");
-  }
-});
-
-
-//add cookies after login and redirects to urls
-app.post("/login", (req, res) => {
-  if(!checkEmail(req.body.email)) {
-    res.status(403).send("Please try again with correct credentials");
-  } else if (!checkPassword(req.body.password)) {
-    res.status(403).send("Please try again with correct password");
-  } else {
-    const userId = checkEmail(req.body.email)["id"];
-    res.cookie("user_id", userId);
-    res.redirect("/urls");
-  }
-});
-
-
-//redirects after logout and clears cookie
-app.post("/logout", (req, res) => {
-    res.clearCookie("user_id");
-    res.redirect("/urls");
-});
 
 
 //msg from server
