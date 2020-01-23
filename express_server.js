@@ -40,15 +40,13 @@ const generateRandomString = function() {
 };
 
 
-const checkEmail = function (users, eMail) {
+const checkEmail = function (email) {
 for (let user in users) {
-  if (users[user].email === eMail) {
-    return true;
-  } else {
-    return false;
-  }
-}
-return false;
+  if (users[user].email === email) {
+    return users[user];
+  } 
+ }
+ return undefined;
 }; 
 
 
@@ -63,7 +61,7 @@ const checkPassword = function(password) {
 
 
 
-//displays cookie
+// displays cookie
 app.get("/", function (req, res) {
   res.cookie("username", req.body.username);
   console.log("cookies:", req.cookies);
@@ -148,8 +146,13 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/register", (req, res) => {
   if (req.body.email === "") {
     res.status(400).send("Please enter an email");
+
   } else if (req.body.password === "") {
-    res.status(400).send("Enter a password");
+    res.status(400).send("Enter a password"); 
+
+  } else if (checkEmail(req.body.email)) {
+    res.status(400).send(`Email already exists`);
+  
   } else {
     let randoUserId = generateRandomString();
     users[randoUserId] = {
@@ -168,9 +171,9 @@ app.post("/login", (req, res) => {
   if(!checkEmail(req.body.email)) {
     res.status(403).send("Please try again with correct credentials");
   } else if (!checkPassword(req.body.password)) {
-    res.status(403).send("Please try again with correct credentials");
-  }  else {
-    const userId = checkEmail(req.body.password)["id"];
+    res.status(403).send("Please try again with correct password");
+  } else {
+    const userId = checkEmail(req.body.email)["id"];
     res.cookie("user_id", userId);
     res.redirect("/urls");
   }
