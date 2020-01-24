@@ -88,14 +88,14 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
     shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL].longURL,
+    longURL: urlDatabase[req.params.shortURL]["longURL"],
     user: users[req.cookies["user_id"]]};
   console.log(templateVars);
   res.render("urls_show", templateVars);
 });
 
 
-//renders Register page
+//renders Register page with cookies
 app.get("/register", (req, res) => {
   res.render("urls_register");
 });
@@ -180,13 +180,16 @@ app.post("/logout", (req, res) => {
 });
 
 
-//edits url and redirects to urls
+//allows user to edit then redirects to urls
 app.post("/urls/:shortURL", (req, res) => {
-  const shortURL = generateRandomString();
   const newURL = req.body.newURL;
   const id = req.params.shortURL;
-  urlDatabase[req.params.shortURL].longURL = newURL;
-  res.redirect("/urls");
+  if (urlDatabase[id].userID !== req.cookies["user_id"]) {
+      res.status(403).send("ERROR: Cannot edit");
+    } else {
+    urlDatabase[id].longURL = newURL;  
+    res.redirect(`/urls/${id}`);
+  }
 });
 
 
@@ -198,9 +201,10 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
+
 //deletes longurl key and redirects
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL]["longURL"];
+delete urlDatabase[req.params.shortURL]["longURL"];
   res.redirect("/urls");
 });
 
