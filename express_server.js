@@ -3,6 +3,7 @@ const express = require("express");
 const bcrypt = require('bcrypt');
 const cookieSession = require('cookie-session');
 const app = express();
+const { checkEmail } = require('./helpers');
 const PORT = 8080;
 
 
@@ -19,7 +20,7 @@ const urlDatabase = {
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
-// iterating urls
+
 const urlsForUser = function(id) {
   let match = {};
   for (let key in urlDatabase) {
@@ -29,7 +30,6 @@ const urlsForUser = function(id) {
   }
   return match;
 };
-
 
 
 const users = {
@@ -54,16 +54,6 @@ const generateRandomString = function() {
     result += chars.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
-};
-
-
-const checkEmail = function(email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return undefined;
 };
 
 
@@ -109,7 +99,6 @@ app.get("/urls/:shortURL", (req, res) => {
     user: users[req.session["user_id"]]
   };
   res.render("urls_show", templateVars);
- 
 });
 
 
@@ -191,6 +180,7 @@ app.post("/login", (req, res) => {
   }
 });
 
+
 //when hit logout button redirects to urls
 app.post("/logout", (req, res) => {
   req.session = null;
@@ -231,4 +221,3 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
