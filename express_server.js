@@ -1,12 +1,15 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080;
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
 
+const password = "purple-monkey-dinosaur"; 
+const hashedPassword = bcrypt.hashSync(password, 10);
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
@@ -59,14 +62,14 @@ const checkEmail = function(email) {
 };
 
 
-const checkPassword = function(password) {
-  for (let user in users) {
-    if (users[user].password === password) {
-      return users[user];
-    }
-  }
-  return undefined;
-};
+// const checkPassword = function(password) {
+//   for (let user in users) {
+//     if (users[user].password === password) {
+//       return users[user];
+//     }
+//   }
+//   return undefined;
+// };
 
 
 
@@ -88,7 +91,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
     shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL]["longURL"],
+    longURL: urlDatabase[req.params.shortURL].longURL,
     user: users[req.cookies["user_id"]]};
   console.log(templateVars);
   res.render("urls_show", templateVars);
@@ -109,7 +112,7 @@ app.get("/login", (req, res) => {
 
 //redirects to website,works with new keys
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL]["longURL"];
+  let longURL = "http://" + urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
@@ -131,6 +134,8 @@ app.get("/urls", (req, res) => {
 
 // create reg handler and redirect user to urls
 app.post("/register", (req, res) => {
+  const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   if(req.body.email === "") {
     res.status(400).send("Please enter an email");
 
@@ -145,7 +150,7 @@ app.post("/register", (req, res) => {
     users[randoUserId] = {
       id: randoUserId,
       email: req.body.email,
-      password: req.body.password
+      password: hashedPassword
     };
     res.cookie("user_id", randoUserId);
     res.redirect("/urls");
@@ -155,10 +160,11 @@ app.post("/register", (req, res) => {
 
 //uses new email and opass field and sets user_id cookie
 app.post("/login", (req, res) => {
+  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
   if (!checkEmail(req.body.email)) {
     res.status(403).send("Please try again with correct credentials");
 
-  } else if (!checkPassword(req.body.password)) {
+  } else if (!bcrypt.compareSync(checkEmail(req.body.email).password, hashedPassword)) {
       res.status(403).send("Please try again with correct password");
 
   } else {
@@ -197,7 +203,7 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
   const userID = req.cookies["user_id"];
-  urlDatabase[shortURL] = { longURL: req.body.longURL, userID};
+  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: user_id};
   res.redirect(`/urls/${shortURL}`);
 });
 
