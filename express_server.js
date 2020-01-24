@@ -1,31 +1,36 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const cookieParser = require("cookie-parser");
 const bcrypt = require('bcrypt');
+const cookieSession = require('cookie-session');
 const app = express();
 const PORT = 8080;
-app.use(cookieParser());
+
+
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
 
-const password = "purple-monkey-dinosaur"; 
-const hashedPassword = bcrypt.hashSync(password, 10);
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
+// iterating urls
 const urlsForUser = function(id) {
   let match = {};
-  for(let key in urlDatabase) {
+  for (let key in urlDatabase) {
     if (id === urlDatabase[key].userID) {
       match[key] = urlDatabase[key].longURL;
     }
   }
   return match;
 };
-urlsForUser();
+
+
 
 const users = {
   "userRandomID": {
@@ -62,34 +67,53 @@ const checkEmail = function(email) {
 };
 
 
-
-
-//displays cookie
-// app.get("/", function (req, res) {
-//   res.cookie("username", req.body.username);
-//   console.log("cookies:", req.cookies);
-// })
+//root login page for user
+app.get("/", (req, res) => {
+  if (!req.session["user_id"]) {
+    res.redirect("/login");
+  }
+  res.redirect("/urls");
+});
 
 
 // renders Create new url
 app.get("/urls/new", (req, res) => {
-  let templateVars = { user: users[req.cookies["user_id"]]};
+  let templateVars = {
+    user: users[req.session["user_id"]]
+  };
+  if (!templateVars.user) {
+    res.redirect("/login");
+  }
   res.render("urls_new", templateVars);
 });
 
 
-//renders tinyurl of and edit new url, works with nested obj
+//renders tinyurl of and edit new url,
 app.get("/urls/:shortURL", (req, res) => {
+
+  if (!req.session["user_id"]) {
+    res.status(400).send("Please login first to edit");
+  }
+
+  if (!urlDatabase[req.params.shortURL]) {
+    res.status(400).send("URL doesn't exist.");
+  }
+
+  if (req.session["user_id"] !== urlDatabase[req.params.shortURL].userID) {
+    res.status(400).send(`Permission to edit URL not granted.`);
+  }
+
   let templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL].longURL,
-    user: users[req.cookies["user_id"]]};
-  console.log(templateVars);
+    user: users[req.session["user_id"]]
+  };
   res.render("urls_show", templateVars);
+ 
 });
 
 
-//renders Register page with cookies
+//renders Register page
 app.get("/register", (req, res) => {
   res.render("urls_register");
 });
@@ -111,68 +135,65 @@ app.get("/u/:shortURL", (req, res) => {
 //renders my urls index
 app.get("/urls", (req, res) => {
   let templateVars = {
-    urls: urlsForUser(req.cookies["user_id"]),
+    urls: urlsForUser(req.session.user_id),
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
     users: users,
-    userId: req.cookies["user_id"],
-    user: users[req.cookies["user_id"]]
+    userId: req.session.user_id,
+    user: users[req.session.user_id]
   };
-  console.log(urlsForUser(req.cookies["user_id"]));
   res.render("urls_index", templateVars);
 });
 
 
 // create reg handler and redirect user to urls
 app.post("/register", (req, res) => {
-  const password = req.body.password;
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  if(req.body.email === "") {
+
+  //empty email box
+  if (!req.body.email) {
     res.status(400).send("Please enter an email");
-
-  } else if (req.body.password === "") {
-    res.status(400).send("Enter a password");
-
-  } else if (checkEmail(req.body.email)) {
-    res.status(400).send("Email already exists");
-  
-  } else {
-    let randoUserId = generateRandomString();
-    users[randoUserId] = {
-      id: randoUserId,
-      email: req.body.email,
-      password: hashedPassword
-    };
-    res.cookie("user_id", randoUserId);
-    res.redirect("/urls");
   }
+  
+  //empty pass box
+  if (!req.body.password) {
+    res.status(400).send("Enter a password");
+  }
+
+  // if registered user tries again
+  if (checkEmail(req.body.email, users)) {
+    res.status(400).send("Email already exists");
+  }
+ 
+  let randoUserId = generateRandomString();
+  users[randoUserId] = {
+    id: randoUserId,
+    email: req.body.email,
+    password: bcrypt.hashSync(req.body.password, 10)
+  };
+  req.session["user_id"] = randoUserId;
+  res.redirect("/urls");
 });
  
 
-//uses new email and opass field and sets user_id cookie
+//logs in and gives cookies
 app.post("/login", (req, res) => {
-  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-  if (!checkEmail(req.body.email)) {
+  let user = checkEmail(req.body.email, users);
+
+  if (!user) {
     res.status(403).send("Please try again with correct credentials");
 
-  } else if (!bcrypt.compareSync(checkEmail(req.body.email).password, hashedPassword)) {
-      res.status(403).send("Please try again with correct password");
+  } else if (!bcrypt.compareSync(req.body.password, users[user.id].password)) {
+    res.status(403).send("Please try again with correct password");
 
   } else {
-    const userId = checkEmail(req.body.email)["id"];
-      res.cookie("user_id", userId);
-      res.redirect("/urls");
+    req.session.user_id = userId;
+    res.redirect("/urls");
   }
 });
 
 //when hit logout button redirects to urls
 app.post("/logout", (req, res) => {
-  let templateVars = {
-    id: req.body.id,
-    email: req.body.email,
-    password: req.body.password
-  };
-  res.cookie("user_id", templateVars);
+  req.session = null;
   res.redirect("/urls");
 });
 
@@ -181,10 +202,10 @@ app.post("/logout", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   const newURL = req.body.newURL;
   const id = req.params.shortURL;
-  if (urlDatabase[id].userID !== req.cookies["user_id"]) {
-      res.status(403).send("ERROR: Cannot edit");
-    } else {
-    urlDatabase[id].longURL = newURL;  
+  if (urlDatabase[id].userID !== req.session.user_id) {
+    res.status(403).send("ERROR: Cannot edit");
+  } else {
+    urlDatabase[id].longURL = newURL;
     res.redirect(`/urls/${id}`);
   }
 });
@@ -193,15 +214,15 @@ app.post("/urls/:shortURL", (req, res) => {
 //creates new shorturl, added new key
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
-  const userID = req.cookies["user_id"];
-  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: user_id};
+  const userID = req.session["user_id"];
+  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.session["user_id"]};
   res.redirect(`/urls/${shortURL}`);
 });
 
 
 //deletes longurl key and redirects
 app.post("/urls/:shortURL/delete", (req, res) => {
-delete urlDatabase[req.params.shortURL]["longURL"];
+  delete urlDatabase[req.params.shortURL]["longURL"];
   res.redirect("/urls");
 });
 
