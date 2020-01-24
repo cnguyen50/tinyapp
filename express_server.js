@@ -13,6 +13,16 @@ const urlDatabase = {
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
+const urlsForUser = function(id) {
+  let match = {};
+  for(let key in urlDatabase) {
+    if (id === urlDatabase[key].userID) {
+      match[key] = urlDatabase[key].longURL;
+    }
+  }
+  return match;
+};
+urlsForUser();
 
 const users = {
   "userRandomID": {
@@ -20,8 +30,8 @@ const users = {
     email: "user@example.com",
     password: "purple-monkey-dinosaur"
   },
-  "user2RandomID": {
-    id: "user2RandomID",
+  "aJ48lW": {
+    id: "aJ48lW",
     email: "user2@example.com",
     password: "dishwasher-funk"
   }
@@ -74,11 +84,11 @@ app.get("/urls/new", (req, res) => {
 });
 
 
-//renders tinyurl of and edit new url
+//renders tinyurl of and edit new url, works with nested obj
 app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
     shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
+    longURL: urlDatabase[req.params.shortURL].longURL,
     user: users[req.cookies["user_id"]]};
   console.log(templateVars);
   res.render("urls_show", templateVars);
@@ -97,16 +107,24 @@ app.get("/login", (req, res) => {
 });
   
 
-//redirects to website
+//redirects to website,works with new keys
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL];
+  let longURL = urlDatabase[req.params.shortURL]["longURL"];
   res.redirect(longURL);
 });
 
 
 //renders my urls index
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]]};
+  let templateVars = {
+    urls: urlsForUser(req.cookies["user_id"]),
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL],
+    users: users,
+    userId: req.cookies["user_id"],
+    user: users[req.cookies["user_id"]]
+  };
+  console.log(urlsForUser(req.cookies["user_id"]));
   res.render("urls_index", templateVars);
 });
 
@@ -167,22 +185,22 @@ app.post("/urls/:shortURL", (req, res) => {
   const shortURL = generateRandomString();
   const newURL = req.body.newURL;
   const id = req.params.shortURL;
-  urlDatabase[req.params.shortURL] = newURL;
+  urlDatabase[req.params.shortURL].longURL = newURL;
   res.redirect("/urls");
 });
 
 
-//creates new shorturl
+//creates new shorturl, added new key
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
+  const userID = req.cookies["user_id"];
+  urlDatabase[shortURL] = { longURL: req.body.longURL, userID};
   res.redirect(`/urls/${shortURL}`);
 });
 
-//deletes shorturl and redirects
+//deletes longurl key and redirects
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
+  delete urlDatabase[req.params.shortURL]["longURL"];
   res.redirect("/urls");
 });
 
