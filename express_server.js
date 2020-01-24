@@ -3,7 +3,9 @@ const express = require("express");
 const bcrypt = require('bcrypt');
 const cookieSession = require('cookie-session');
 const app = express();
+const { urlsForUser } = require('./helpers');
 const { checkEmail } = require('./helpers');
+const { generateRandomString } = require('./helpers');
 const PORT = 8080;
 
 
@@ -14,47 +16,6 @@ app.use(cookieSession({
   keys: ['key1', 'key2']
 }));
 
-
-const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
-};
-
-
-const urlsForUser = function(id) {
-  let match = {};
-  for (let key in urlDatabase) {
-    if (id === urlDatabase[key].userID) {
-      match[key] = urlDatabase[key].longURL;
-    }
-  }
-  return match;
-};
-
-
-const users = {
-  "userRandomID": {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur"
-  },
-  "aJ48lW": {
-    id: "aJ48lW",
-    email: "user2@example.com",
-    password: "dishwasher-funk"
-  }
-};
-
-
-const generateRandomString = function() {
-  let result = "";
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let charactersLength = chars.length;
-  for (let i = 1; i < 7; i++) {
-    result += chars.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-};
 
 
 //root login page for user
