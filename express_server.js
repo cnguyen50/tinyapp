@@ -62,15 +62,6 @@ const checkEmail = function(email) {
 };
 
 
-// const checkPassword = function(password) {
-//   for (let user in users) {
-//     if (users[user].password === password) {
-//       return users[user];
-//     }
-//   }
-//   return undefined;
-// };
-
 
 
 //displays cookie
