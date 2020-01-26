@@ -174,16 +174,17 @@ app.post("/register", (req, res) => {
 
 //logs in and gives cookies
 app.post("/login", (req, res) => {
-  let user = checkEmail(req.body.email, users);
+  let actualPassword = checkEmail(req.body["email"], users);
+  let user = checkEmail(req.body.email, users)
 
   if (!user) {
     res.status(403).send("Please try again with correct credentials");
 
-  } else if (!bcrypt.compareSync(req.body.password, users[user.id].password)) {
+  } else if (!bcrypt.compareSync(req.body.password, users[actualPassword]["password"])) {
     res.status(403).send("Please try again with correct password");
 
   } else {
-    req.session.user_id = userId;
+    req.session["user_id"] = user;
     res.redirect("/urls");
   }
 });
@@ -220,7 +221,7 @@ app.post("/urls", (req, res) => {
 
 //deletes longurl key and redirects
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL]["longURL"];
+  delete urlDatabase[req.params.shortURL].userID;
   res.redirect("/urls");
 });
 
