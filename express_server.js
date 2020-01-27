@@ -154,6 +154,7 @@ app.post("/register", (req, res) => {
   //empty pass box
   if (!req.body.password) {
     res.status(400).send("Enter a password");
+    return;
   }
 
   // if registered user tries again
@@ -193,7 +194,7 @@ app.post("/login", (req, res) => {
 //when hit logout button redirects to urls
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 
